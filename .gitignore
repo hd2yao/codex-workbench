@@ -1,0 +1,14 @@
+.DS_Store
+.build/
+build/
+dist/
+screenshots/
+Resources/AppIcon-1024.png
+Resources/AppIcon.icns
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
