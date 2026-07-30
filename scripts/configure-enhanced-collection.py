@@ -39,6 +39,10 @@ def source_collector() -> Path:
 
 
 def target_collector(home: Path) -> Path:
+    return home.absolute() / ".codex" / "operation-ledger" / "hooks" / COLLECTOR_NAME
+
+
+def legacy_target_collector(home: Path) -> Path:
     return home.absolute() / ".codex" / "codex-workbench" / "hooks" / COLLECTOR_NAME
 
 
@@ -208,6 +212,28 @@ def validate_target(path: Path) -> None:
         raise ValueError(f"collector 目标路径冲突：{path}")
 
 
+def migrate_legacy_collector(home: Path, source: Path) -> bool:
+    legacy = legacy_target_collector(home)
+    if not legacy.exists() and not legacy.is_symlink():
+        return False
+    if legacy.is_symlink() or not legacy.is_file() or not same_contents(legacy, source):
+        raise ValueError(f"旧 collector 不是可安全迁移的工作台文件：{legacy}")
+    legacy.unlink()
+    prune_empty_legacy_directories(home)
+    return True
+
+
+def prune_empty_legacy_directories(home: Path) -> None:
+    legacy = legacy_target_collector(home)
+    for directory in (legacy.parent, legacy.parent.parent):
+        if directory.is_symlink() or not directory.is_dir():
+            continue
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
+
+
 def install(home: Path, dry_run: bool) -> None:
     source = source_collector()
     if not source.is_file():
@@ -216,7 +242,14 @@ def install(home: Path, dry_run: bool) -> None:
     validate_target(target)
     path = config_path(home)
     config = load_config(path)
-    changed = merge_config(config, str(target))
+    legacy = legacy_target_collector(home)
+    legacy_is_managed = legacy.exists() or legacy.is_symlink()
+    if legacy_is_managed and (
+        legacy.is_symlink() or not legacy.is_file() or not same_contents(legacy, source)
+    ):
+        raise ValueError(f"旧 collector 不是可安全迁移的工作台文件：{legacy}")
+    changed = remove_own_hooks(config, str(legacy))
+    changed = merge_config(config, str(target)) or changed
     if dry_run:
         print("将启用 SessionStart / Stop / PreCompact 增强日志；不会覆盖其他 Hook。")
         return
@@ -225,6 +258,10 @@ def install(home: Path, dry_run: bool) -> None:
     if changed:
         backup_config(path)
         atomic_write(path, serialized(config), 0o600)
+    if legacy_is_managed:
+        migrate_legacy_collector(home, source)
+    else:
+        prune_empty_legacy_directories(home)
     print("增强日志已启用。")
 
 
