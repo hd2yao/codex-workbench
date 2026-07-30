@@ -62,9 +62,9 @@ git commit -m "docs: define modular workbench migration"
 - Modify: `Tests/Scripts/test-account-resource-freshness.sh`
 - Delete: no file in the new repository; old Profile Switcher UI is deliberately not copied.
 
-**Step 1: 复制当前工作台 tracked 源码、资源、脚本、文档、截图和测试到新仓库**
+**Step 1: 复制当前工作台 tracked 源码、资源、脚本、必要文档和测试到新仓库**
 
-从来源工作树的 `codex-workbench/` 复制，排除 `.build/`、`build/`、App 图标生成物和 Git 元数据。先比较清单与 `git ls-files`。
+从来源工作树的 `codex-workbench/` 复制，排除 `.build/`、`build/`、App 图标生成物、Git 元数据和可能暴露本机路径/个人桌面内容的历史截图。先比较清单与 `git ls-files`，再扫描公开内容。
 
 **Step 2: 迁入最小 Python 本地运行时与测试**
 
@@ -143,7 +143,7 @@ Expected: GitHub `main` 显示完整工作台代码。
 
 **Step 4: 清理旧仓库 tracked 源码并更新忽略规则**
 
-只有确认新仓库 `main` 包含 T002/T003 源后，使用 `git rm -r -- codex-workbench codex-profile-switcher`；删除已确认的 ignored build 目录，不触碰用户主目录、已安装 App 或用户数据。
+只有确认新仓库 `main` 包含 T002/T003 源后，删除旧仓库实际跟踪的 `codex-profile-switcher/`（若存在才删除 `codex-workbench/`）；删除已确认的 ignored build 目录。旧 Profile Switcher App 可按用户授权移入废纸篓，不触碰 `~/.codex*`、日志或新工作台 App。
 
 **Step 5: 验证旧仓库保留范围并提交推送**
 
@@ -155,4 +155,4 @@ Run: `git ls-files | rg '^(codex-workbench|codex-profile-switcher)/'`（应无�
 
 **Step 7: 收敛检查**
 
-逐项复核 `spec.md` 的 AC-001 至 AC-007，记录签名/公证和远端 Release 未执行为已批准非目标。
+逐项复核 `spec.md` 的 AC-001 至 AC-008，记录签名/公证和新远端 Release 未执行为已批准非目标。
